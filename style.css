@@ -410,3 +410,28 @@ noscript { display: block; padding: 16px; color: var(--danger); text-align: cent
   .record-controls { align-items: stretch; }
   .record-controls select, .record-controls input, .record-controls button { width: 100%; }
 }
+
+.account-actions { display: flex; min-width: 270px; flex-wrap: wrap; align-items: center; gap: 6px; }
+.account-actions input {
+  width: 100%;
+  min-width: 180px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: var(--bg-soft);
+  color: var(--text);
+  font-size: 10px;
+}
+.account-actions button {
+  border: 1px solid rgba(99, 140, 255, .28);
+  border-radius: 8px;
+  padding: 7px 9px;
+  background: rgba(99, 140, 255, .1);
+  color: #cbd7ff;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.account-actions button:hover:not(:disabled) { background: rgba(99, 140, 255, .2); }
+.account-actions button:disabled, .account-actions input:disabled { cursor: not-allowed; opacity: .55; }
+.account-actions button:last-of-type { border-color: rgba(255, 133, 143, .24); background: rgba(255, 133, 143, .06); color: #ffb8be; }
+.moderation-pending { color: var(--text-muted); font-size: 10px; }
