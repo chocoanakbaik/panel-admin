@@ -178,7 +178,12 @@ begin
     raise exception 'invalid feedback status';
   end if;
   update public.feedback
-    set status = p_status, updated_at = now()
+    set status = p_status,
+        updated_at = now(),
+        retention_until = case
+          when p_status in ('resolved', 'dismissed') then now() + interval '365 days'
+          else retention_until
+        end
     where id = p_id
     returning * into changed;
   if not found then return null; end if;
