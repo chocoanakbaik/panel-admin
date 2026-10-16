@@ -46,6 +46,7 @@ Dokumentasi rancangan:
 - [Kontrak event dan API](docs/integrations/event-contract.md)
 - [Panduan integrasi sender](docs/integrations/senders.md)
 - [Kontrak moderasi akun](docs/integrations/moderation-contract.md)
+- [Status kesiapan integrasi sumber](docs/integrations/source-status.md)
 - [Model data](docs/data/data-model.md)
 - [Model keamanan dan privasi](docs/security/security-model.md)
 - [Strategi rilis](docs/deployment/release-strategy.md)
