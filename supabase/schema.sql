@@ -339,3 +339,14 @@ $$;
 
 revoke all on function public.admin_finalize_moderation_action(uuid, text, jsonb, text, text, text, text, text) from public, anon, authenticated;
 grant execute on function public.admin_finalize_moderation_action(uuid, text, jsonb, text, text, text, text, text) to service_role;
+
+
+-- Explicitly grant server-side access to the panel's tables only.
+grant select, insert, update, delete on public.integration_sources to service_role;
+grant select, insert, update, delete on public.service_events to service_role;
+grant select, insert, update, delete on public.accounts to service_role;
+grant select, insert, update, delete on public.reports to service_role;
+grant select, insert, update, delete on public.feedback to service_role;
+grant select, insert, update, delete on public.moderation_actions to service_role;
+grant select, insert, update, delete on public.admin_audit_log to service_role;
+grant select, insert, update, delete on public.admin_login_attempts to service_role;
