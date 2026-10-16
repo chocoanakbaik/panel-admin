@@ -91,6 +91,12 @@ async function listResource(resource, params) {
     }));
   }
 
+  if (resource === "audit") {
+    query.set("select", "id,actor,action,target_type,target_ref,reason,result,created_at");
+    query.set("order", "created_at.desc");
+    return (await request("admin_audit_log", { query: query.toString() })).data || [];
+  }
+
   return null;
 }
 
@@ -104,7 +110,7 @@ exports.handler = async (event) => {
     const resource = params.get("resource") || "overview";
     try {
       if (resource === "overview") return json(200, { ok: true, data: await overview() });
-      if (["events", "reports", "feedback", "accounts"].includes(resource)) {
+      if (["events", "reports", "feedback", "accounts", "audit"].includes(resource)) {
         return json(200, { ok: true, data: await listResource(resource, params) });
       }
       if (resource === "integrations") {
