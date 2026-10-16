@@ -1,0 +1,11 @@
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Node and Netlify local artifacts
+node_modules/
+.netlify/
+coverage/
+npm-debug.log*
+*.log
