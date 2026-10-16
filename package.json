@@ -7,7 +7,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "check:syntax": "node --check public/app.js && node --check netlify/functions/admin-auth.js && node --check netlify/functions/admin-api.js && node --check netlify/functions/ingest-event.js && node --check netlify/functions/admin-moderation.js && node --check netlify/functions/_lib/auth.js && node --check netlify/functions/_lib/http.js && node --check netlify/functions/_lib/supabase.js",
+    "check:syntax": "node --check public/app.js && node --check netlify/functions/admin-auth.js && node --check netlify/functions/admin-api.js && node --check netlify/functions/ingest-event.js && node --check netlify/functions/admin-moderation.js && node --check netlify/functions/retention-cleanup.js && node --check netlify/functions/_lib/auth.js && node --check netlify/functions/_lib/http.js && node --check netlify/functions/_lib/supabase.js",
     "test": "npm run check:syntax && node tests/static-checks.js"
   }
 }
