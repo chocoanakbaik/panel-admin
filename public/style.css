@@ -485,3 +485,15 @@ noscript { display: block; padding: 16px; color: var(--danger); text-align: cent
   .section-filter { max-width: 150px; }
   .filter-controls input, .filter-controls select, .filter-controls button { flex: 1 1 100%; width: 100%; }
 }
+
+.notice[data-type="error"] {
+  border-color: rgba(255, 133, 143, .3);
+  background: linear-gradient(110deg, rgba(255, 133, 143, .08), rgba(161, 107, 255, .04));
+  color: #ffd7db;
+}
+.notice[data-type="success"] {
+  border-color: rgba(110, 219, 176, .22);
+  background: linear-gradient(110deg, rgba(110, 219, 176, .06), rgba(99, 140, 255, .04));
+  color: #d7fff0;
+}
+.notice[data-type="error"] span, .notice[data-type="success"] span { color: var(--text-secondary); }
