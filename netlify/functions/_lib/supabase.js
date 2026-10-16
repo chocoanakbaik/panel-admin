@@ -31,11 +31,19 @@ async function request(table, options = {}) {
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (prefer) headers.Prefer = prefer;
   if (range) headers.Range = range;
-  const response = await fetch(endpoint, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body)
-  });
+  let response;
+  try {
+    response = await fetch(endpoint, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: AbortSignal.timeout(10000)
+    });
+  } catch {
+    const error = new Error("Database service unavailable.");
+    error.status = 503;
+    throw error;
+  }
   const text = await response.text();
   let data = null;
   if (text) {
@@ -45,6 +53,8 @@ async function request(table, options = {}) {
     const error = new Error("Database request failed.");
     error.status = response.status >= 500 ? 503 : 400;
     error.databaseStatus = response.status;
+    error.table = table;
+    console.error("Panel database request failed", { table, status: response.status });
     throw error;
   }
   return { data, headers: response.headers, status: response.status };
