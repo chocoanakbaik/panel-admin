@@ -183,7 +183,7 @@ function renderAccounts(items) {
   if (!items?.length) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
-    cell.colSpan = 4;
+    cell.colSpan = 5;
     cell.className = "empty-cell";
     cell.textContent = "Belum ada akun yang dilaporkan oleh sumber terhubung.";
     row.append(cell);
@@ -200,8 +200,92 @@ function renderAccounts(items) {
     status.append(makeStatusPill(item.status_cache));
     const seen = document.createElement("td");
     seen.textContent = formatDate(item.last_seen_at);
-    row.append(source, account, status, seen);
+    const actions = document.createElement("td");
+    const actionWrap = document.createElement("div");
+    actionWrap.className = "account-actions";
+    const reason = document.createElement("input");
+    reason.type = "text";
+    reason.maxLength = 1000;
+    reason.placeholder = "Alasan wajib";
+    reason.setAttribute("aria-label", "Alasan moderasi akun " + (item.source_account_ref || ""));
+    const available = item.source_id === "choco-ai" && item.moderation_available === true;
+    if (!available) {
+      reason.disabled = true;
+      reason.title = "Backend moderasi sumber belum terhubung.";
+    }
+    const makeActionButton = (label, actionType) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = label;
+      button.disabled = !available;
+      button.title = available ? label : "Backend moderasi sumber belum terhubung.";
+      button.addEventListener("click", () => runModeration(item, actionType, reason, button));
+      return button;
+    };
+    actionWrap.append(
+      reason,
+      makeActionButton("Tangguhkan", "suspend"),
+      makeActionButton("Pulihkan", "restore"),
+      makeActionButton("Nonaktifkan", "deactivate")
+    );
+    if (!available) {
+      const note = document.createElement("span");
+      note.className = "moderation-pending";
+      note.textContent = "Belum terhubung";
+      actionWrap.append(note);
+    }
+    actions.append(actionWrap);
+    row.append(source, account, status, seen, actions);
     tbody.append(row);
+  }
+}
+
+async function runModeration(account, actionType, reasonInput, button) {
+  const reason = reasonInput.value.trim();
+  if (!reason) {
+    reasonInput.setCustomValidity("Masukkan alasan moderasi.");
+    reasonInput.reportValidity();
+    return;
+  }
+  reasonInput.setCustomValidity("");
+  if (actionType === "deactivate" &&
+      !window.confirm("Konfirmasi: nonaktifkan akun ini secara permanen? Pastikan alasan dan identitas akun sudah benar.")) {
+    return;
+  }
+  button.disabled = true;
+  const originalLabel = button.textContent;
+  button.textContent = "Memproses...";
+  const idempotencyKey = window.crypto?.randomUUID
+    ? window.crypto.randomUUID()
+    : ("mod-" + Date.now() + "-" + Math.random().toString(36).slice(2, 14));
+  try {
+    const response = await fetch("/.netlify/functions/admin-moderation", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        source_id: account.source_id,
+        account_ref: account.source_account_ref,
+        action_type: actionType,
+        reason,
+        idempotency_key: idempotencyKey
+      })
+    });
+    const result = await readJson(response);
+    if (response.status === 401) {
+      showLogin("Sesi admin berakhir. Silakan masuk kembali.");
+      return;
+    }
+    if (!response.ok || !result.ok || result.status !== "confirmed") {
+      throw new Error(result.error || "Layanan sumber belum mengonfirmasi tindakan.");
+    }
+    setGlobalMessage("Tindakan moderasi dikonfirmasi", "Layanan Choco AI telah mengonfirmasi status akun. Tindakan dan alasannya dicatat di audit log.", "success");
+    await loadDashboard();
+  } catch (error) {
+    setGlobalMessage("Tindakan moderasi tidak dikonfirmasi", error.message || "Tidak ada perubahan status yang dapat dipastikan.", "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
   }
 }
 
