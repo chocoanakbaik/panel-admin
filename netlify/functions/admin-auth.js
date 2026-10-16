@@ -1,59 +1,37 @@
 const crypto = require("node:crypto");
+const { json, readJsonBody } = require("./_lib/http");
+const { safeEqual, createSession, isValidSession, sessionCookie, getCookieHeader, requireSameOrigin } = require("./_lib/auth");
+const { request } = require("./_lib/supabase");
 
-const COOKIE_NAME = "choco_admin_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
 
-function json(statusCode, body, extraHeaders = {}) {
-  return {
-    statusCode,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-      "Referrer-Policy": "no-referrer",
-      "Vary": "Cookie",
-      ...extraHeaders
-    },
-    body: JSON.stringify(body)
-  };
+function requesterHash(event, secret) {
+  const ip = event.headers?.["x-nf-client-connection-ip"] ||
+    event.headers?.["X-Nf-Client-Connection-Ip"] || "unknown";
+  return crypto.createHmac("sha256", secret).update(String(ip)).digest("hex");
 }
 
-function digest(value) {
-  return crypto.createHash("sha256").update(value, "utf8").digest();
+async function rateLimitState(ipHash) {
+  const result = await request("rpc/admin_is_login_limited", {
+    method: "POST",
+    body: { p_ip_hash: ipHash }
+  });
+  return result.data === true;
 }
 
-function safeEqual(a, b) {
-  return crypto.timingSafeEqual(digest(a), digest(b));
-}
-
-function sign(value, secret) {
-  return crypto.createHmac("sha256", secret).update(value).digest("base64url");
-}
-
-function createSession(secret) {
-  const expiresAt = String(Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS);
-  return expiresAt + "." + sign(expiresAt, secret);
-}
-
-function isValidSession(cookieHeader, secret) {
-  if (!cookieHeader) return false;
-  const cookie = cookieHeader.split(";").map(part => part.trim())
-    .find(part => part.startsWith(COOKIE_NAME + "="));
-  if (!cookie) return false;
-  const value = decodeURIComponent(cookie.slice(COOKIE_NAME.length + 1));
-  const [expiresAt, signature, ...extra] = value.split(".");
-  if (!expiresAt || !signature || extra.length || !/^\d+$/.test(expiresAt)) return false;
-  if (Number(expiresAt) <= Math.floor(Date.now() / 1000)) return false;
-  return safeEqual(signature, sign(expiresAt, secret));
-}
-
-function sessionCookie(value, maxAge) {
-  return `${COOKIE_NAME}=${value}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`;
+async function recordLoginAttempt(ipHash, success) {
+  await request("rpc/admin_record_login_attempt", {
+    method: "POST",
+    body: { p_ip_hash: ipHash, p_success: success }
+  });
 }
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return json(405, { ok: false, error: "Method not allowed." }, { Allow: "POST" });
+  }
+  if (!requireSameOrigin(event)) {
+    return json(403, { ok: false, error: "Origin permintaan tidak diizinkan." });
   }
 
   const adminKey = process.env.PANEL_ADMIN_KEY;
@@ -62,29 +40,12 @@ exports.handler = async (event) => {
     return json(503, { ok: false, error: "Autentikasi belum dikonfigurasi dengan aman." });
   }
 
-  let payload;
-  try {
-    payload = JSON.parse(event.body || "{}");
-  } catch {
-    return json(400, { ok: false, error: "Permintaan tidak valid." });
-  }
-
-  const action = payload && payload.action;
-  if (action === "login") {
-    if (typeof payload.key !== "string" || payload.key.length > 512) {
-      return json(400, { ok: false, error: "Format access key tidak valid." });
-    }
-    if (!safeEqual(payload.key, adminKey)) {
-      return json(401, { ok: false, error: "Access key tidak valid." });
-    }
-    const token = createSession(sessionSecret);
-    return json(200, { ok: true }, {
-      "Set-Cookie": sessionCookie(token, SESSION_TTL_SECONDS)
-    });
-  }
+  const parsed = readJsonBody(event, 4096);
+  if (!parsed.ok) return parsed.response;
+  const action = parsed.value.action;
 
   if (action === "verify") {
-    const authenticated = isValidSession(event.headers.cookie || event.headers.Cookie, sessionSecret);
+    const authenticated = isValidSession(getCookieHeader(event), sessionSecret);
     return json(200, { ok: true, authenticated });
   }
 
@@ -94,5 +55,35 @@ exports.handler = async (event) => {
     });
   }
 
-  return json(400, { ok: false, error: "Aksi tidak dikenal." });
+  if (action !== "login") return json(400, { ok: false, error: "Aksi tidak dikenal." });
+  const key = parsed.value.key;
+  if (typeof key !== "string" || key.length < 1 || key.length > 512) {
+    return json(400, { ok: false, error: "Format access key tidak valid." });
+  }
+
+  const ipHash = requesterHash(event, sessionSecret);
+  let limited;
+  try {
+    limited = await rateLimitState(ipHash);
+  } catch {
+    return json(503, { ok: false, error: "Layanan autentikasi sementara tidak tersedia." });
+  }
+  if (limited) {
+    return json(429, { ok: false, error: "Terlalu banyak percobaan. Coba lagi setelah 15 menit." }, {
+      "Retry-After": "900"
+    });
+  }
+
+  const validKey = safeEqual(key, adminKey);
+  try {
+    await recordLoginAttempt(ipHash, validKey);
+  } catch {
+    return json(503, { ok: false, error: "Layanan autentikasi sementara tidak tersedia." });
+  }
+  if (!validKey) return json(401, { ok: false, error: "Access key tidak valid." });
+
+  const token = createSession(sessionSecret, SESSION_TTL_SECONDS);
+  return json(200, { ok: true }, {
+    "Set-Cookie": sessionCookie(token, SESSION_TTL_SECONDS)
+  });
 };
