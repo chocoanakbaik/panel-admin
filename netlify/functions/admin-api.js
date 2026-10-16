@@ -83,7 +83,12 @@ async function listResource(resource, params) {
     const source = params.get("source");
     if (["choco-ai", "sara-ai", "help-center"].includes(source)) query.set("source_id", "eq." + source);
     if (validEnum(params.get("status"), ["unknown", "active", "suspended", "deactivated"])) query.set("status_cache", "eq." + params.get("status"));
-    return (await request("accounts", { query: query.toString() })).data || [];
+    const rows = (await request("accounts", { query: query.toString() })).data || [];
+    return rows.map(row => ({
+      ...row,
+      moderation_available: row.source_id === "choco-ai" &&
+        Boolean(process.env.MODERATION_CHOCO_AI_URL && process.env.MODERATION_CHOCO_AI_SECRET)
+    }));
   }
 
   return null;
