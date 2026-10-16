@@ -392,6 +392,38 @@ function makeRecordCard(item, type) {
   return card;
 }
 
+function renderAudit(items) {
+  const tbody = document.getElementById("audit-table-body");
+  tbody.replaceChildren();
+  if (!items?.length) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 6;
+    cell.className = "empty-cell";
+    cell.textContent = "Belum ada tindakan admin yang tercatat.";
+    row.append(cell);
+    tbody.append(row);
+    return;
+  }
+  for (const item of items) {
+    const row = document.createElement("tr");
+    const values = [
+      formatDate(item.created_at),
+      item.actor || "owner",
+      item.action || "—",
+      [item.target_type, item.target_ref].filter(Boolean).join(": ") || "—",
+      item.reason || "—",
+      item.result || "—"
+    ];
+    for (const value of values) {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.append(cell);
+    }
+    tbody.append(row);
+  }
+}
+
 function renderRecords(containerId, items, type) {
   const container = document.getElementById(containerId);
   container.replaceChildren();
@@ -420,18 +452,26 @@ async function loadDashboard() {
     document.getElementById("data-updated-at").textContent = "Data dihitung pada " + generatedAt + ".";
     document.getElementById("footer-updated-at").textContent = generatedAt;
 
-    const [integrations, events, accounts, reports, feedback] = await Promise.all([
+    const eventSource = document.getElementById("activity-source-filter").value;
+    const accountSource = document.getElementById("account-source-filter").value;
+    const reportSearch = document.getElementById("report-search").value.trim();
+    const reportStatus = document.getElementById("report-status-filter").value;
+    const feedbackSearch = document.getElementById("feedback-search").value.trim();
+    const feedbackStatus = document.getElementById("feedback-status-filter").value;
+    const [integrations, events, accounts, reports, feedback, audit] = await Promise.all([
       requestAdmin("integrations"),
-      requestAdmin("events", { limit: 12 }),
-      requestAdmin("accounts", { limit: 12 }),
-      requestAdmin("reports", { limit: 10 }),
-      requestAdmin("feedback", { limit: 10 })
+      requestAdmin("events", { limit: 12, source: eventSource }),
+      requestAdmin("accounts", { limit: 12, source: accountSource }),
+      requestAdmin("reports", { limit: 10, q: reportSearch, status: reportStatus }),
+      requestAdmin("feedback", { limit: 10, q: feedbackSearch, status: feedbackStatus }),
+      requestAdmin("audit", { limit: 25 })
     ]);
     renderServices(integrations);
     renderEvents(events);
     renderAccounts(accounts);
     renderRecords("reports-list", reports, "reports");
     renderRecords("feedback-list", feedback, "feedback");
+    renderAudit(audit);
     setGlobalMessage(
       "Dashboard tersambung ke penyimpanan",
       "Data ditampilkan berdasarkan event yang benar-benar diterima. Sumber tanpa event tetap ditandai belum terhubung.",
@@ -488,6 +528,16 @@ logoutButton.addEventListener("click", async () => {
 });
 
 refreshButton.addEventListener("click", loadDashboard);
+document.getElementById("activity-source-filter").addEventListener("change", loadDashboard);
+document.getElementById("account-source-filter").addEventListener("change", loadDashboard);
+document.getElementById("report-filter-form").addEventListener("submit", event => {
+  event.preventDefault();
+  loadDashboard();
+});
+document.getElementById("feedback-filter-form").addEventListener("submit", event => {
+  event.preventDefault();
+  loadDashboard();
+});
 
 async function restoreSession() {
   try {
