@@ -50,7 +50,7 @@ async function overview() {
 async function listResource(resource, params) {
   const limit = clampNumber(params.get("limit"), 25, 1, 100);
   const offset = clampNumber(params.get("offset"), 0, 0, 1000000);
-  const searchRaw = (params.get("q") || "").trim().slice(0, 100).replace(/[^a-zA-Z0-9\\s._-]/g, " ");
+  const searchRaw = (params.get("q") || "").trim().slice(0, 100).replace(/[^a-zA-Z0-9 ._-]/g, " ");
   const query = new URLSearchParams();
   query.set("limit", String(limit));
   query.set("offset", String(offset));
