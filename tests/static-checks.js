@@ -16,6 +16,7 @@ for (const file of [
   "netlify/functions/admin-api.js",
   "netlify/functions/ingest-event.js",
   "netlify/functions/admin-moderation.js",
+  "netlify/functions/retention-cleanup.js",
   "docs/integrations/moderation-contract.md",
   "docs/integrations/senders.md"
 ]) {
