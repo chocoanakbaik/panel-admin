@@ -93,15 +93,29 @@ exports.handler = async (event) => {
       },
       prefer: "resolution=ignore-duplicates,return=representation"
     });
-    const action = Array.isArray(inserted.data) ? inserted.data[0] : null;
+    let action = Array.isArray(inserted.data) ? inserted.data[0] : null;
     if (!action) {
       const existing = await request("moderation_actions", {
-        query: "select=id,status,source_id,source_account_ref,action_type&idempotency_key=eq." +
+        query: "select=id,status,source_id,source_account_ref,action_type,reason,expires_at&idempotency_key=eq." +
           encodeURIComponent(idempotencyKey) + "&limit=1"
       });
       const prior = Array.isArray(existing.data) ? existing.data[0] : null;
       if (!prior) return json(503, { ok: false, error: "Status tindakan tidak dapat diverifikasi." });
-      return json(200, { ok: true, duplicate: true, status: prior.status, action_id: prior.id });
+      if (prior.source_id !== sourceId || prior.source_account_ref !== accountRef ||
+          prior.action_type !== actionType || prior.reason !== reason ||
+          (prior.expires_at || null) !== (expiresAt || null)) {
+        return json(409, { ok: false, error: "Idempotency key sudah dipakai untuk tindakan berbeda." });
+      }
+      if (prior.status === "confirmed") {
+        return json(200, { ok: true, duplicate: true, status: "confirmed", action_id: prior.id });
+      }
+      action = prior;
+      await request("moderation_actions", {
+        method: "PATCH",
+        query: "id=eq." + encodeURIComponent(action.id),
+        body: { status: "requested" },
+        prefer: "return=minimal"
+      });
     }
 
     const command = {
