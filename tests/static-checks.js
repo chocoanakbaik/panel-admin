@@ -15,7 +15,9 @@ for (const file of [
   "netlify/functions/admin-auth.js",
   "netlify/functions/admin-api.js",
   "netlify/functions/ingest-event.js",
-  "netlify/functions/admin-moderation.js"
+  "netlify/functions/admin-moderation.js",
+  "docs/integrations/moderation-contract.md",
+  "docs/integrations/senders.md"
 ]) {
   assert.ok(exists(file), "Required project file is missing: " + file);
 }
@@ -41,8 +43,10 @@ assert.match(moderation, /MODERATION_CHOCO_AI_URL/, "Moderation must call the ac
 assert.match(moderation, /idempotency_key/, "Moderation commands must be idempotent.");
 
 const html = read("public/index.html");
-for (const id of ["login-view", "dashboard-view", "service-grid", "events-table-body", "accounts-table-body", "reports-list", "feedback-list"]) {
+for (const id of ["login-view", "dashboard-view", "service-grid", "events-table-body", "accounts-table-body", "reports-list", "feedback-list", "audit-table-body"]) {
   assert.ok(html.includes('id="' + id + '"'), "Required UI target is missing: " + id);
 }
+
+assert.ok(!exists("index.html") && !exists("app.js") && !exists("style.css"), "Browser assets must live in the public deploy directory only.");
 
 console.log("Static project checks passed.");
