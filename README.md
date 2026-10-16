@@ -90,3 +90,27 @@ Repositori ini masih berada pada tahap fondasi. Deskripsi fitur di atas merupaka
 ## Catatan
 
 Panel ini adalah alat administrasi internal. Pengguna layanan harus memperoleh informasi yang jelas tentang data apa yang dikumpulkan, tujuan penggunaannya, dan cara mengajukan pertanyaan atau permintaan terkait data mereka.
+
+
+## Login Owner dan Deployment Netlify
+
+Halaman awal menggunakan kolom access key. Jika key valid, halaman beralih ke dashboard. Validasi dilakukan di Netlify Function, bukan hanya di browser. Sesi menggunakan cookie HttpOnly, Secure, dan SameSite=Strict dengan masa berlaku terbatas.
+
+### Environment variables wajib
+
+Di Netlify, buka Site configuration → Environment variables lalu buat dua variabel berikut:
+
+- **PANEL_ADMIN_KEY** — access key rahasia pilihan owner, minimal 24 karakter.
+- **PANEL_SESSION_SECRET** — rahasia acak yang berbeda, minimal 32 karakter.
+
+Jangan menaruh nilai rahasia di repositori, README, frontend, atau tangkapan layar publik. Setelah mengubah environment variables, lakukan deploy ulang.
+
+### Cara deploy
+
+Karena autentikasi memakai Netlify Functions, pastikan file di folder `netlify/functions` ikut diproses saat deploy dan fungsi `admin-auth` muncul pada dashboard Netlify. Cara yang disarankan adalah menghubungkan repositori GitHub ini ke Netlify pada branch `main`, atau memakai Netlify CLI untuk deploy yang menyertakan Functions. Upload statis drag-and-drop saja tidak boleh diasumsikan telah menerbitkan Functions.
+
+Dokumentasi: [Netlify Functions](https://docs.netlify.com/build/functions/overview/) · [Membuat deploy Netlify](https://docs.netlify.com/deploy/create-deploys/)
+
+## Status Implementasi Login
+
+Kerangka login dan tampilan dashboard sudah dibuat. Dashboard masih berisi placeholder: data aktivitas, akun, laporan, penyimpanan, dan integrasi Choco AI/Sara belum tersambung. Sebelum digunakan untuk moderasi produksi, integrasi dan pengamanan endpoint harus diselesaikan serta diuji.
