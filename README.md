@@ -1,116 +1,114 @@
 # Choco Panel Admin
 
-**Panel Admin adalah dashboard privat khusus untuk pemilik (owner) Choco** untuk mengelola keamanan platform, meninjau laporan, memantau penggunaan layanan, serta mengambil tindakan terhadap akun yang terbukti melanggar aturan.
+**Choco Panel Admin** adalah pusat kendali privat untuk owner yang menyatukan laporan operasional dan keamanan ekosistem Choco: Choco AI, Sara AI, Choco AI Help Center, masukan pengguna, serta laporan penyalahgunaan.
 
-Repositori ini merupakan pusat administrasi untuk ekosistem Choco. Choco AI dan Sara (Choco AI Help Center) tetap berjalan pada repositori dan layanan masing-masing; keduanya akan terhubung ke panel ini melalui API yang terautentikasi.
+Panel ini bukan alat untuk memantau kehidupan pribadi pengguna di luar layanan. Data yang diterima dibatasi pada kebutuhan operasional, keamanan, moderasi, dan peningkatan produk.
 
-## Tujuan Utama
+## Tampilan dan identitas visual
 
-Panel ini dibuat agar owner dapat menjaga platform tetap aman, tertib, dan sesuai aturan penggunaan. Panel bukan alat untuk memantau kehidupan pribadi pengguna di luar layanan Choco.
+Panel mengikuti sistem visual Choco AI Help Center:
+- Latar utama navy gelap: `#080b14`
+- Surface utama: `#111625`
+- Teks utama: `#eef2ff`
+- Aksen biru: `#638cff`
+- Aksen ungu: `#a16bff`
+- Gradasi aksen biru–ungu
 
-## Cakupan Fitur
+Desain responsif mencakup ringkasan ekosistem, status integrasi, aktivitas terbaru, akun yang tercatat, laporan masuk, serta kritik dan saran.
 
-### 1. Dashboard Aktivitas
-- Ringkasan penggunaan layanan dan aktivitas sistem yang relevan untuk operasional serta keamanan.
-- Sumber aktivitas, waktu, status pemrosesan, dan indikator masalah.
-- Filter berdasarkan layanan, kategori, rentang waktu, dan status tindak lanjut.
+## Fitur dan status
 
-### 2. Manajemen Akun Choco AI
-- Melihat akun yang terdaftar dan metadata akun yang diperlukan untuk mengelola layanan.
-- Meninjau riwayat penggunaan layanan yang relevan dengan keamanan dan penegakan aturan.
-- Melihat peringatan atau indikasi pelanggaran yang terdeteksi, beserta konteks minimum yang diperlukan untuk peninjauan.
-- Menangguhkan sementara, memulihkan, atau menonaktifkan akun berdasarkan kebijakan platform dan hasil peninjauan.
-- Mencatat alasan, waktu, serta tindakan moderasi agar keputusan dapat ditelusuri.
+| Modul | Fungsi | Status |
+|---|---|---|
+| Login owner | Access key diverifikasi di server, sesi bertanda tangan, cookie HttpOnly/Secure/SameSite, pembatasan percobaan berbasis database | Fondasi diimplementasikan; perlu konfigurasi dan pengujian deployment |
+| Ringkasan | Jumlah event 24 jam, akun, laporan terbuka, masukan terbuka | API dibuat; memerlukan database |
+| Status layanan | Menampilkan koneksi dan waktu event terakhir | API dibuat; belum ada sender layanan yang dikonfirmasi |
+| Aktivitas | Daftar event operasional yang diterima | API dibuat |
+| Akun | Daftar referensi akun yang dilaporkan oleh sumber | API dibuat; tidak menggantikan autentikasi sumber |
+| Laporan | Daftar laporan, status tindak lanjut, alasan, audit log | API dan pembaruan status dibuat |
+| Kritik & saran | Daftar masukan dan pembaruan status | API dan pembaruan status dibuat |
+| Penangguhan akun | Harus dikonfirmasi oleh layanan yang memiliki akun | Belum terhubung ke backend Choco AI; panel tidak boleh mengklaim akun telah diblokir |
+| Integrasi Sara AI | Event operasional dan laporan jawaban yang dikirim secara eksplisit | Kontrak dibuat; sender belum terhubung |
 
-Panel tidak boleh menyimpan kata sandi dalam bentuk terbaca, token rahasia, atau kredensial autentikasi pengguna.
+Fitur yang membutuhkan database atau sender sumber **belum dapat dianggap aktif hanya karena endpoint atau tampilannya sudah ada**. Status "belum terhubung" harus dipertahankan sampai pengujian end-to-end berhasil.
 
-### 3. Kritik dan Saran
-- Menerima masukan pengguna ketika formulir dan integrasinya tersedia.
-- Mengelompokkan, mencari, memberi status, dan mencatat tindak lanjut masukan.
+## Arsitektur
 
-### 4. Laporan Penyalahgunaan
-- Menerima laporan dugaan penyalahgunaan layanan atau pelanggaran aturan.
-- Menyimpan kategori laporan, waktu, status, dan bukti yang relevan jika disertakan secara sah.
-- Mendukung proses peninjauan sebelum tindakan moderasi diambil.
+- **Frontend:** HTML, CSS, JavaScript tanpa framework berat; memakai desain responsif dan merender data tidak tepercaya melalui `textContent`.
+- **Backend:** Netlify Functions di `netlify/functions/`.
+- **Database:** Supabase PostgreSQL melalui REST API server-side.
+- **Integrasi:** endpoint event berversi dengan HMAC, timestamp, sumber yang diizinkan, validasi payload, batas ukuran, dan idempotency key.
+- **Moderasi:** harus memakai API backend layanan sumber. Status akun di panel hanya cache/status terakhir yang dikonfirmasi sumber.
+- **Audit:** perubahan status laporan/masukan dicatat secara atomik bersama perubahan status melalui fungsi SQL.
 
-### 5. Laporan dan Masukan untuk Sara AI
-- Menerima laporan tentang jawaban yang keliru, tidak relevan, bermasalah, atau diduga melanggar kebijakan.
-- Menghubungkan laporan dengan layanan dan waktu kejadian agar dapat diperiksa.
-- Menyediakan status tindak lanjut untuk membantu evaluasi kualitas Sara.
+Dokumentasi rancangan:
+- [Arsitektur sistem](docs/architecture/system-overview.md)
+- [Kontrak event dan API](docs/integrations/event-contract.md)
+- [Panduan integrasi sender](docs/integrations/senders.md)
+- [Model data](docs/data/data-model.md)
+- [Model keamanan dan privasi](docs/security/security-model.md)
+- [Strategi rilis](docs/deployment/release-strategy.md)
+- [Checklist penerimaan](docs/testing/acceptance-checklist.md)
 
-### 6. Integrasi Antar-Layanan
-Panel dirancang untuk menerima event melalui API dari:
-- **Choco AI** — aktivitas layanan, metadata akun yang diperlukan, serta sinyal keamanan atau pelanggaran yang relevan.
-- **Sara / Choco AI Help Center** — aktivitas layanan yang relevan dan laporan atas jawaban atau pengalaman pengguna.
-- **Kritik dan saran** — setelah formulir pengiriman tersedia.
-- **Laporan pengguna** — setelah mekanisme pelaporan tersedia.
+## Setup produksi satu kali
 
-Tidak semua sumber otomatis terhubung sejak awal. Setiap aplikasi perlu menerapkan integrasi pengiriman data ke API panel admin.
+### 1. Siapkan database
 
-## Batasan Privasi dan Penggunaan Data
+1. Buat proyek Supabase.
+2. Buka SQL Editor.
+3. Jalankan isi `supabase/schema.sql` satu kali.
+4. Pastikan tabel dan fungsi SQL berhasil dibuat.
+5. Jangan pernah menaruh service-role key di HTML, CSS, atau JavaScript browser.
 
-Akses owner ditujukan untuk **administrasi, keamanan, moderasi, pemeliharaan, dan peningkatan layanan Choco**. Kepemilikan platform bukan alasan untuk mengumpulkan data tanpa batas.
+### 2. Hubungkan repositori ke Netlify
 
-- Kumpulkan hanya data yang diperlukan untuk fungsi di atas dan jelaskan pemrosesannya dalam kebijakan privasi layanan.
-- Jangan mengumpulkan atau menampilkan aktivitas pribadi pengguna yang tidak berkaitan dengan penggunaan Choco.
-- Jangan merekam seluruh percakapan secara diam-diam sebagai kebiasaan bawaan. Jika isi pesan atau potongan percakapan diperlukan untuk memeriksa laporan atau dugaan pelanggaran, batasi pada konteks yang relevan, berikan pemberitahuan yang sesuai, dan terapkan kontrol akses serta masa retensi.
-- Pisahkan metadata operasional dari isi percakapan. Hindari mengirim isi pesan lengkap apabila metadata atau ringkasan kejadian sudah memadai.
-- Jangan pernah menyimpan kata sandi, API key, token sesi, atau rahasia autentikasi dalam log.
-- Batasi akses dashboard kepada owner yang terautentikasi; lindungi endpoint dengan autentikasi antarlayanan, validasi input, pembatasan permintaan, dan pencatatan akses admin.
-- Gunakan data yang relevan dan bukti yang cukup sebelum menjatuhkan sanksi. Indikator otomatis sebaiknya menjadi sinyal untuk ditinjau, bukan selalu menjadi satu-satunya dasar keputusan.
-- Tentukan masa retensi, mekanisme penghapusan, dan penanganan permintaan pengguna sesuai kebijakan privasi serta hukum yang berlaku.
+- Hubungkan repositori `chocoanakbaik/panel-admin` ke Netlify.
+- Tetapkan `main` sebagai production branch.
+- Biarkan pengerjaan lanjutan berlangsung di `development`.
+- Jangan merge ke `main` sampai checklist penerimaan lulus.
+- Pastikan deployment menyertakan direktori `netlify/functions`; deployment statis tanpa Functions tidak cukup.
 
-## Rencana Arsitektur
+### 3. Atur environment variables di Netlify
 
-Implementasi akan dikembangkan secara bertahap dengan pemisahan komponen agar mudah dirawat:
+Buat variabel berikut melalui pengaturan situs Netlify. Nilai rahasia tidak boleh ditulis ke GitHub.
 
-1. **Admin Dashboard** — antarmuka privat untuk melihat ringkasan, akun, aktivitas, masukan, dan laporan.
-2. **Admin API** — endpoint terautentikasi untuk menerima dan mengelola data.
-3. **Data Storage** — penyimpanan akun, event, laporan, status moderasi, dan audit log dengan akses terbatas.
-4. **Integration Layer** — kontrak API dan validasi event dari setiap layanan Choco.
-5. **Authentication & Authorization** — perlindungan login owner dan pemeriksaan izin pada setiap operasi sensitif.
-6. **Moderation & Audit** — alur peninjauan, alasan keputusan, tindakan akun, dan jejak perubahan.
+| Variabel | Kegunaan |
+|---|---|
+| `PANEL_ADMIN_KEY` | Access key owner, minimal 24 karakter |
+| `PANEL_SESSION_SECRET` | Rahasia HMAC sesi, berbeda dari access key, minimal 32 karakter |
+| `SUPABASE_URL` | URL proyek Supabase, HTTPS |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service-role key untuk akses database server-side saja |
+| `INTEGRATION_CHOCO_AI_SECRET` | HMAC secret khusus pengirim Choco AI |
+| `INTEGRATION_SARA_AI_SECRET` | HMAC secret khusus pengirim Sara AI |
+| `INTEGRATION_HELP_CENTER_SECRET` | HMAC secret khusus pengirim Help Center |
+| `MODERATION_CHOCO_AI_URL` | Endpoint moderasi backend Choco AI, setelah tersedia |
+| `MODERATION_CHOCO_AI_SECRET` | Secret HMAC untuk komunikasi panel ke backend Choco AI, setelah tersedia |
 
-Pilihan framework, database, dan hosting harus ditetapkan berdasarkan kompatibilitas integrasi yang sudah digunakan, keamanan, biaya operasional, serta kemampuan berjalan ringan. Jangan menaruh kredensial produksi di repositori.
+Setiap source secret harus unik dan dibuat secara acak. Variabel integrasi/moderasi dapat ditambahkan saat sender atau backend terkait sudah siap. Jangan membuat nilai rahasia yang sama untuk semua layanan.
 
-## Status Proyek
+### 4. Hubungkan aplikasi sumber
 
-Repositori ini masih berada pada tahap fondasi. Deskripsi fitur di atas merupakan ruang lingkup dan rancangan awal, **bukan pernyataan bahwa fitur tersebut sudah tersedia atau sudah terhubung**. Setiap integrasi akan dianggap selesai setelah implementasi dan pengujiannya berhasil.
+Panel tidak bisa membaca data dari repositori lain secara otomatis. Tiap layanan harus mengirim event ke:
 
-## Prinsip Pengembangan
+`POST /.netlify/functions/ingest-event`
 
-- Keamanan dan privasi sejak tahap desain.
-- Akses minimum sesuai kebutuhan.
-- Validasi semua data masuk dan jangan memercayai payload dari klien.
-- Operasi moderasi harus tercatat dan dapat ditinjau.
-- Pisahkan modul agar perubahan pada satu fitur tidak merusak fitur lain.
-- Utamakan solusi gratis atau berbiaya rendah tanpa mengorbankan keamanan.
-- Dokumentasikan endpoint, skema event, konfigurasi, dan pengujian.
+Request memakai header `x-choco-source`, `x-choco-timestamp`, dan `x-choco-signature`. Signature adalah HMAC-SHA256 hex dari teks `<timestamp>.<raw-json-body>`, menggunakan secret sumber yang cocok. Contoh pengirim server-side tersedia di [panduan sender](docs/integrations/senders.md).
 
-## Catatan
+**Jangan pernah menaruh integration secret di JavaScript browser.** Jika Choco AI berupa situs statis, pengiriman event harus dilakukan melalui backend/function yang aman. Sara AI yang berjalan lokal hanya akan terhubung jika aplikasi mengirim event yang disetujui secara eksplisit.
 
-Panel ini adalah alat administrasi internal. Pengguna layanan harus memperoleh informasi yang jelas tentang data apa yang dikumpulkan, tujuan penggunaannya, dan cara mengajukan pertanyaan atau permintaan terkait data mereka.
+### 5. Uji sebelum rilis
 
+Gunakan [checklist penerimaan](docs/testing/acceptance-checklist.md). Verifikasi login, sesi, rate limit, storage, event duplikat, payload invalid, pembaruan status, audit log, dan status integrasi. Jangan gunakan panel untuk moderasi produksi sebelum layanan sumber benar-benar mengonfirmasi tindakan.
 
-## Login Owner dan Deployment Netlify
+## Privasi dan batas pengumpulan
 
-Halaman awal menggunakan kolom access key. Jika key valid, halaman beralih ke dashboard. Validasi dilakukan di Netlify Function, bukan hanya di browser. Sesi menggunakan cookie HttpOnly, Secure, dan SameSite=Strict dengan masa berlaku terbatas.
+- Jangan simpan kata sandi, token sesi, API key, atau kredensial pengguna.
+- Jangan mengumpulkan seluruh percakapan secara diam-diam sebagai default.
+- Kirim metadata operasional seperlunya dan konteks laporan paling minimum yang dibutuhkan.
+- Gunakan event keselamatan otomatis sebagai sinyal peninjauan, bukan bukti tunggal untuk sanksi permanen.
+- Tentukan masa retensi dan mekanisme penghapusan data sebelum rilis.
+- Catat tindakan owner yang mengubah status laporan, masukan, atau akun.
 
-### Environment variables wajib
+## Strategi rilis
 
-Di Netlify, buka Site configuration → Environment variables lalu buat dua variabel berikut:
-
-- **PANEL_ADMIN_KEY** — access key rahasia pilihan owner, minimal 24 karakter.
-- **PANEL_SESSION_SECRET** — rahasia acak yang berbeda, minimal 32 karakter.
-
-Jangan menaruh nilai rahasia di repositori, README, frontend, atau tangkapan layar publik. Setelah mengubah environment variables, lakukan deploy ulang.
-
-### Cara deploy
-
-Karena autentikasi memakai Netlify Functions, pastikan file di folder `netlify/functions` ikut diproses saat deploy dan fungsi `admin-auth` muncul pada dashboard Netlify. Cara yang disarankan adalah menghubungkan repositori GitHub ini ke Netlify pada branch `main`, atau memakai Netlify CLI untuk deploy yang menyertakan Functions. Upload statis drag-and-drop saja tidak boleh diasumsikan telah menerbitkan Functions.
-
-Dokumentasi: [Netlify Functions](https://docs.netlify.com/build/functions/overview/) · [Membuat deploy Netlify](https://docs.netlify.com/deploy/create-deploys/)
-
-## Status Implementasi Login
-
-Kerangka login dan tampilan dashboard sudah dibuat. Dashboard masih berisi placeholder: data aktivitas, akun, laporan, penyimpanan, dan integrasi Choco AI/Sara belum tersambung. Sebelum digunakan untuk moderasi produksi, integrasi dan pengamanan endpoint harus diselesaikan serta diuji.
+Tidak ada arsitektur yang menjamin layanan tidak pernah memerlukan perbaikan. Untuk meminimalkan deploy berulang, semua pekerjaan dan tes dilakukan di branch `development`, sedangkan `main` tetap sebagai branch rilis. Deployment produksi dilakukan setelah fondasi, database, keamanan, UI, dan integrasi yang memang tersedia lulus pengujian. Integrasi sumber yang belum dibuat akan tetap ditandai sebagai belum terhubung, bukan disamarkan sebagai fitur selesai.
