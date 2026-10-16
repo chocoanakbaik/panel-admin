@@ -87,7 +87,7 @@ async function listResource(resource, params) {
     return rows.map(row => ({
       ...row,
       moderation_available: row.source_id === "choco-ai" &&
-        Boolean(process.env.MODERATION_CHOCO_AI_URL && process.env.MODERATION_CHOCO_AI_SECRET)
+        process.env.MODERATION_CHOCO_AI_ENABLED === "true" && Boolean(process.env.MODERATION_CHOCO_AI_URL && process.env.MODERATION_CHOCO_AI_SECRET)
     }));
   }
 
