@@ -139,6 +139,21 @@ exports.handler = async (event) => {
       return json(400, { ok: false, error: "Jenis event tidak diizinkan untuk sumber ini." });
     }
 
+    const existingEvent = await request("service_events", {
+      query: "select=event_id,idempotency_key&source_id=eq." + encodeURIComponent(source) +
+        "&event_id=eq." + encodeURIComponent(payload.event_id) + "&limit=1"
+    });
+    if (Array.isArray(existingEvent.data) && existingEvent.data.length) {
+      return json(202, { ok: true, accepted: true, duplicate: true });
+    }
+    const existingIdempotency = await request("service_events", {
+      query: "select=event_id,idempotency_key&source_id=eq." + encodeURIComponent(source) +
+        "&idempotency_key=eq." + encodeURIComponent(payload.idempotency_key) + "&limit=1"
+    });
+    if (Array.isArray(existingIdempotency.data) && existingIdempotency.data.length) {
+      return json(409, { ok: false, error: "Idempotency key telah dipakai untuk event berbeda." });
+    }
+
     const data = payload.data;
     if (payload.event_type === "abuse.report_submitted" || payload.event_type === "sara.response_reported") {
       const report = {
