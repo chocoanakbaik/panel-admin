@@ -70,6 +70,13 @@ function mapReportType(eventType) {
   return "safety";
 }
 
+function retentionUntil(envName, fallbackDays, minDays, maxDays) {
+  const configured = Number(process.env[envName]);
+  const days = Number.isInteger(configured) && configured >= minDays && configured <= maxDays
+    ? configured : fallbackDays;
+  return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return json(405, { ok: false, error: "Method not allowed." }, { Allow: "POST" });
@@ -142,7 +149,8 @@ exports.handler = async (event) => {
         description: data.description,
         evidence: data.evidence && typeof data.evidence === "object" ? data.evidence : {},
         priority: ["low", "normal", "high", "urgent"].includes(data.priority) ? data.priority : "normal",
-        submitted_at: payload.occurred_at
+        submitted_at: payload.occurred_at,
+        retention_until: retentionUntil("PANEL_REPORT_RETENTION_DAYS", 365, 30, 1825)
       };
       await request("reports", {
         method: "POST",
@@ -158,7 +166,8 @@ exports.handler = async (event) => {
         source_feedback_ref: data.feedback_id,
         category: ["criticism", "suggestion", "bug", "usability", "other"].includes(data.category) ? data.category : "other",
         message: data.message,
-        submitted_at: payload.occurred_at
+        submitted_at: payload.occurred_at,
+        retention_until: retentionUntil("PANEL_FEEDBACK_RETENTION_DAYS", 365, 30, 1825)
       };
       await request("feedback", {
         method: "POST",
@@ -194,7 +203,8 @@ exports.handler = async (event) => {
         subject_ref: payload.subject?.id || null,
         severity: ["info", "low", "medium", "high", "critical"].includes(data.severity) ? data.severity : null,
         data_json: data,
-        idempotency_key: payload.idempotency_key
+        idempotency_key: payload.idempotency_key,
+        retention_until: retentionUntil("PANEL_EVENT_RETENTION_DAYS", 90, 7, 730)
       },
       prefer: "resolution=ignore-duplicates,return=representation"
     });
