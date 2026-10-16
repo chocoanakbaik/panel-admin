@@ -47,6 +47,7 @@
         <a href="#accounts">Akun</a>
         <a href="#reports">Laporan</a>
         <a href="#feedback">Kritik &amp; saran</a>
+        <a href="#audit">Audit log</a>
       </nav>
 
       <div class="dashboard-content">
@@ -94,7 +95,17 @@
         </section>
 
         <section id="accounts" class="panel-section">
-          <div class="section-heading"><div><h2>Akun layanan</h2><p>Status yang tampil adalah status terakhir dari sumber, bukan pengganti sistem autentikasi sumber.</p></div></div>
+          <div class="section-heading">
+            <div><h2>Akun layanan</h2><p>Status yang tampil adalah status terakhir dari sumber, bukan pengganti sistem autentikasi sumber.</p></div>
+            <label class="filter-label">Layanan
+              <select id="account-source-filter" class="section-filter">
+                <option value="">Semua layanan</option>
+                <option value="choco-ai">Choco AI</option>
+                <option value="sara-ai">Sara AI</option>
+                <option value="help-center">Help Center</option>
+              </select>
+            </label>
+          </div>
           <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th>Layanan</th><th>Referensi akun</th><th>Status tersinkron</th><th>Terakhir terlihat</th><th>Tindakan moderasi</th></tr></thead>
@@ -104,13 +115,48 @@
         </section>
 
         <section id="reports" class="panel-section">
-          <div class="section-heading"><div><h2>Laporan masuk</h2><p>Laporan penyalahgunaan, masalah keselamatan, dan laporan jawaban Sara.</p></div></div>
+          <div class="section-heading">
+            <div><h2>Laporan masuk</h2><p>Laporan penyalahgunaan, masalah keselamatan, dan laporan jawaban Sara.</p></div>
+          </div>
+          <form id="report-filter-form" class="filter-controls">
+            <input id="report-search" type="search" maxlength="100" placeholder="Cari laporan atau kategori..." aria-label="Cari laporan">
+            <select id="report-status-filter" aria-label="Filter status laporan">
+              <option value="">Semua status</option>
+              <option value="new">Baru</option>
+              <option value="reviewing">Ditinjau</option>
+              <option value="resolved">Selesai</option>
+              <option value="dismissed">Ditutup</option>
+            </select>
+            <button type="submit">Terapkan filter</button>
+          </form>
           <div id="reports-list" class="record-list"><p class="empty-state">Belum ada laporan yang diterima.</p></div>
         </section>
 
         <section id="feedback" class="panel-section">
           <div class="section-heading"><div><h2>Kritik, saran &amp; masukan</h2><p>Masukan produk yang dikirim pengguna melalui formulir layanan.</p></div></div>
+          <form id="feedback-filter-form" class="filter-controls">
+            <input id="feedback-search" type="search" maxlength="100" placeholder="Cari kritik, saran, atau bug..." aria-label="Cari masukan">
+            <select id="feedback-status-filter" aria-label="Filter status masukan">
+              <option value="">Semua status</option>
+              <option value="new">Baru</option>
+              <option value="reviewing">Ditinjau</option>
+              <option value="planned">Direncanakan</option>
+              <option value="resolved">Selesai</option>
+              <option value="dismissed">Ditutup</option>
+            </select>
+            <button type="submit">Terapkan filter</button>
+          </form>
           <div id="feedback-list" class="record-list"><p class="empty-state">Belum ada masukan yang diterima.</p></div>
+        </section>
+
+        <section id="audit" class="panel-section">
+          <div class="section-heading"><div><h2>Audit log</h2><p>Riwayat perubahan status dan tindakan admin yang tercatat.</p></div></div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Waktu</th><th>Aktor</th><th>Tindakan</th><th>Target</th><th>Alasan</th><th>Hasil</th></tr></thead>
+              <tbody id="audit-table-body"><tr><td colspan="6" class="empty-cell">Belum ada catatan audit.</td></tr></tbody>
+            </table>
+          </div>
         </section>
 
         <footer class="dashboard-footer">
