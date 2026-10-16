@@ -1,0 +1,13 @@
+{
+  "name": "choco-panel-admin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Owner-only control plane for the Choco service ecosystem",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "check:syntax": "node --check public/app.js && node --check netlify/functions/admin-auth.js && node --check netlify/functions/admin-api.js && node --check netlify/functions/ingest-event.js && node --check netlify/functions/admin-moderation.js && node --check netlify/functions/_lib/auth.js && node --check netlify/functions/_lib/http.js && node --check netlify/functions/_lib/supabase.js",
+    "test": "npm run check:syntax && node tests/static-checks.js"
+  }
+}
