@@ -133,3 +133,120 @@ values
   ('sara-ai', 'Sara AI', array['service.health','security.signal','sara.response_reported','user.feedback_submitted','abuse.report_submitted']),
   ('help-center', 'Choco AI Help Center', array['service.health','user.feedback_submitted','abuse.report_submitted'])
 on conflict (source_id) do nothing;
+
+
+-- Owner status updates and their audit entries are atomic database operations.
+create or replace function public.admin_update_report_status(
+  p_id uuid, p_status text, p_actor text, p_reason text
+) returns jsonb
+language plpgsql
+security invoker
+as $$
+declare
+  changed public.reports%rowtype;
+begin
+  if p_status not in ('new', 'reviewing', 'resolved', 'dismissed') then
+    raise exception 'invalid report status';
+  end if;
+  update public.reports
+    set status = p_status, updated_at = now()
+    where id = p_id
+    returning * into changed;
+  if not found then return null; end if;
+  insert into public.admin_audit_log (actor, action, target_type, target_ref, reason, result)
+    values (coalesce(nullif(p_actor, ''), 'owner'), 'update_status', 'report', p_id::text,
+            left(coalesce(p_reason, ''), 1000), p_status);
+  return to_jsonb(changed);
+end;
+$$;
+
+create or replace function public.admin_update_feedback_status(
+  p_id uuid, p_status text, p_actor text, p_reason text
+) returns jsonb
+language plpgsql
+security invoker
+as $$
+declare
+  changed public.feedback%rowtype;
+begin
+  if p_status not in ('new', 'reviewing', 'planned', 'resolved', 'dismissed') then
+    raise exception 'invalid feedback status';
+  end if;
+  update public.feedback
+    set status = p_status, updated_at = now()
+    where id = p_id
+    returning * into changed;
+  if not found then return null; end if;
+  insert into public.admin_audit_log (actor, action, target_type, target_ref, reason, result)
+    values (coalesce(nullif(p_actor, ''), 'owner'), 'update_status', 'feedback', p_id::text,
+            left(coalesce(p_reason, ''), 1000), p_status);
+  return to_jsonb(changed);
+end;
+$$;
+
+-- Store only a keyed hash of the requester address, never the raw IP.
+create table if not exists public.admin_login_attempts (
+  ip_hash text primary key,
+  window_started_at timestamptz not null default now(),
+  failed_attempts integer not null default 0,
+  blocked_until timestamptz,
+  updated_at timestamptz not null default now()
+);
+alter table public.admin_login_attempts enable row level security;
+
+create or replace function public.admin_is_login_limited(p_ip_hash text)
+returns boolean
+language sql
+security invoker
+as $$
+  select exists (
+    select 1 from public.admin_login_attempts
+    where ip_hash = p_ip_hash
+      and (
+        blocked_until > now()
+        or (window_started_at > now() - interval '15 minutes' and failed_attempts >= 5)
+      )
+  );
+$$;
+
+create or replace function public.admin_record_login_attempt(p_ip_hash text, p_success boolean)
+returns void
+language plpgsql
+security invoker
+as $$
+begin
+  if p_success then
+    delete from public.admin_login_attempts where ip_hash = p_ip_hash;
+    return;
+  end if;
+
+  insert into public.admin_login_attempts
+    (ip_hash, window_started_at, failed_attempts, blocked_until, updated_at)
+  values
+    (p_ip_hash, now(), 1, null, now())
+  on conflict (ip_hash) do update set
+    window_started_at = case
+      when public.admin_login_attempts.window_started_at < now() - interval '15 minutes' then now()
+      else public.admin_login_attempts.window_started_at
+    end,
+    failed_attempts = case
+      when public.admin_login_attempts.window_started_at < now() - interval '15 minutes' then 1
+      else public.admin_login_attempts.failed_attempts + 1
+    end,
+    blocked_until = case
+      when public.admin_login_attempts.window_started_at < now() - interval '15 minutes' then null
+      when public.admin_login_attempts.failed_attempts + 1 >= 5 then now() + interval '15 minutes'
+      else public.admin_login_attempts.blocked_until
+    end,
+    updated_at = now();
+end;
+$$;
+
+revoke all on function public.admin_update_report_status(uuid, text, text, text) from public, anon, authenticated;
+revoke all on function public.admin_update_feedback_status(uuid, text, text, text) from public, anon, authenticated;
+revoke all on function public.admin_is_login_limited(text) from public, anon, authenticated;
+revoke all on function public.admin_record_login_attempt(text, boolean) from public, anon, authenticated;
+grant execute on function public.admin_update_report_status(uuid, text, text, text) to service_role;
+grant execute on function public.admin_update_feedback_status(uuid, text, text, text) to service_role;
+grant execute on function public.admin_is_login_limited(text) to service_role;
+grant execute on function public.admin_record_login_attempt(text, boolean) to service_role;
