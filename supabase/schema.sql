@@ -250,3 +250,92 @@ grant execute on function public.admin_update_report_status(uuid, text, text, te
 grant execute on function public.admin_update_feedback_status(uuid, text, text, text) to service_role;
 grant execute on function public.admin_is_login_limited(text) to service_role;
 grant execute on function public.admin_record_login_attempt(text, boolean) to service_role;
+
+
+-- Keep the upsert target aliased for portable PostgreSQL name resolution.
+create or replace function public.admin_record_login_attempt(p_ip_hash text, p_success boolean)
+returns void
+language plpgsql
+security invoker
+as $$
+begin
+  if p_success then
+    delete from public.admin_login_attempts where ip_hash = p_ip_hash;
+    return;
+  end if;
+
+  insert into public.admin_login_attempts as current_attempt
+    (ip_hash, window_started_at, failed_attempts, blocked_until, updated_at)
+  values
+    (p_ip_hash, now(), 1, null, now())
+  on conflict (ip_hash) do update set
+    window_started_at = case
+      when current_attempt.window_started_at < now() - interval '15 minutes' then now()
+      else current_attempt.window_started_at
+    end,
+    failed_attempts = case
+      when current_attempt.window_started_at < now() - interval '15 minutes' then 1
+      else current_attempt.failed_attempts + 1
+    end,
+    blocked_until = case
+      when current_attempt.window_started_at < now() - interval '15 minutes' then null
+      when current_attempt.failed_attempts + 1 >= 5 then now() + interval '15 minutes'
+      else current_attempt.blocked_until
+    end,
+    updated_at = now();
+end;
+$$;
+
+-- Moderation state and the corresponding audit record are updated atomically.
+create or replace function public.admin_finalize_moderation_action(
+  p_action_id uuid,
+  p_status text,
+  p_source_result jsonb,
+  p_actor text,
+  p_reason text,
+  p_source_id text,
+  p_account_ref text,
+  p_account_status text
+) returns jsonb
+language plpgsql
+security invoker
+as $$
+declare
+  changed public.moderation_actions%rowtype;
+begin
+  if p_status not in ('confirmed', 'failed') then
+    raise exception 'invalid moderation result';
+  end if;
+  if p_account_status not in ('unknown', 'active', 'suspended', 'deactivated') then
+    raise exception 'invalid account status';
+  end if;
+
+  update public.moderation_actions
+    set status = p_status,
+        confirmed_at = case when p_status = 'confirmed' then now() else null end,
+        source_result = coalesce(p_source_result, '{}'::jsonb)
+    where id = p_action_id
+    returning * into changed;
+  if not found then return null; end if;
+
+  if p_status = 'confirmed' then
+    update public.accounts
+      set status_cache = p_account_status, last_status_sync_at = now()
+      where source_id = p_source_id and source_account_ref = p_account_ref;
+  end if;
+
+  insert into public.admin_audit_log (actor, action, target_type, target_ref, reason, result)
+    values (
+      coalesce(nullif(p_actor, ''), 'owner'),
+      changed.action_type,
+      'account',
+      p_source_id || ':' || p_account_ref,
+      left(coalesce(p_reason, ''), 1000),
+      p_status
+    );
+  return to_jsonb(changed);
+end;
+$$;
+
+revoke all on function public.admin_finalize_moderation_action(uuid, text, jsonb, text, text, text, text, text) from public, anon, authenticated;
+grant execute on function public.admin_finalize_moderation_action(uuid, text, jsonb, text, text, text, text, text) to service_role;
