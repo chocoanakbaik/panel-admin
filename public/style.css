@@ -175,7 +175,18 @@ a { color: inherit; text-decoration: none; }
   color: white;
   font-size: 19px;
 }
-.wordmark span { color: var(--text-secondary); font-size: 13px; font-weight: 500; letter-spacing: 0; }
+.wordmark-caption { color: var(--text-secondary); font-size: 13px; font-weight: 500; letter-spacing: 0; }
+.wordmark-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(124, 151, 255, .35);
+  border-radius: 11px;
+  background: var(--gradient);
+  color: #fff;
+  font-size: 19px;
+}
 .topbar-right { display: flex; align-items: center; gap: 18px; }
 .owner-indicator { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 12px; }
 .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); box-shadow: 0 0 12px rgba(110, 219, 176, .35); }
@@ -404,7 +415,7 @@ noscript { display: block; padding: 16px; color: var(--danger); text-align: cent
   .topbar-right { gap: 7px; }
   .topbar-right .secondary-button { padding: 8px 9px; font-size: 10px; }
   .wordmark { font-size: 17px; }
-  .wordmark span { display: none; }
+  .wordmark-caption { display: none; }
   .dashboard-nav { padding-inline: 12px; }
   .dashboard-nav a { padding: 7px 9px; }
   .record-controls { align-items: stretch; }
