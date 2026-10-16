@@ -5,8 +5,16 @@ const { request, countRows, databaseError } = require("./_lib/supabase");
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function queryParams(event) {
-  try { return new URL(event.rawUrl || ("https://" + (event.headers?.host || "localhost") + (event.path || "/")), "https://panel.invalid").searchParams; }
-  catch { return new URLSearchParams(); }
+  try {
+    if (event.rawUrl) return new URL(event.rawUrl, "https://panel.invalid").searchParams;
+  } catch {
+    // Fall back to Netlify's parsed query string.
+  }
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(event.queryStringParameters || {})) {
+    if (typeof value === "string") params.set(key, value);
+  }
+  return params;
 }
 
 function clampNumber(value, fallback, min, max) {
@@ -42,7 +50,7 @@ async function overview() {
 async function listResource(resource, params) {
   const limit = clampNumber(params.get("limit"), 25, 1, 100);
   const offset = clampNumber(params.get("offset"), 0, 0, 1000000);
-  const searchRaw = (params.get("q") || "").trim().slice(0, 100).replace(/[,*()]/g, " ");
+  const searchRaw = (params.get("q") || "").trim().slice(0, 100).replace(/[^\\p{L}\\p{N}\\s._-]/gu, " ");
   const query = new URLSearchParams();
   query.set("limit", String(limit));
   query.set("offset", String(offset));
