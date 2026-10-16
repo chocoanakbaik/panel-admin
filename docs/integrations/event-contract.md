@@ -12,7 +12,12 @@ Netlify Function route:
 
 The route must require a source-specific credential in a request header, validate the source against the server-side integration registry, and reject requests with an unknown source or invalid signature. Do not send secrets in the JSON body or query string.
 
-For production, prefer an HMAC signature over the raw request body with a timestamp and replay window. Each source has a different secret stored only in server-side environment variables or the selected secret store. Rotate credentials if exposed.
+The current receiver requires HMAC-SHA256 over the exact raw request body plus timestamp. Required headers are:
+- `x-choco-source`: source identifier.
+- `x-choco-timestamp`: Unix timestamp in seconds.
+- `x-choco-signature`: lowercase/uppercase hex HMAC-SHA256 of `<timestamp>.<exact raw JSON body>`.
+
+The receiver accepts a timestamp within a five-minute clock-skew window. Each source has a different secret stored only in server-side environment variables: `INTEGRATION_CHOCO_AI_SECRET`, `INTEGRATION_SARA_AI_SECRET`, and `INTEGRATION_HELP_CENTER_SECRET`. Rotate credentials if exposed. Sender code must run server-side; do not embed secrets in browser JavaScript.
 
 ## Event envelope (v1)
 
