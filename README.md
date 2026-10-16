@@ -83,7 +83,7 @@ Buat variabel berikut melalui pengaturan situs Netlify. Nilai rahasia tidak bole
 | `INTEGRATION_SARA_AI_SECRET` | HMAC secret khusus pengirim Sara AI |
 | `INTEGRATION_HELP_CENTER_SECRET` | HMAC secret khusus pengirim Help Center |
 | `MODERATION_CHOCO_AI_URL` | Endpoint moderasi backend Choco AI, setelah tersedia |
-| `MODERATION_CHOCO_AI_SECRET` | Secret HMAC untuk komunikasi panel ke backend Choco AI, setelah tersedia |\n| `MODERATION_CHOCO_AI_ENABLED` | Set ke `true` hanya setelah kontrak moderasi diuji end-to-end; selain itu kontrol tetap nonaktif |
+| `MODERATION_CHOCO_AI_SECRET` | Secret HMAC untuk komunikasi panel ke backend Choco AI, setelah tersedia |\n| `MODERATION_CHOCO_AI_ENABLED` | Set ke `true` hanya setelah kontrak moderasi diuji end-to-end; selain itu kontrol tetap nonaktif |\n| `PANEL_EVENT_RETENTION_DAYS` | Retensi event operasional, default 90 hari (rentang 7–730) |\n| `PANEL_REPORT_RETENTION_DAYS` | Retensi laporan sebelum selesai, default 365 hari (rentang 30–1825) |\n| `PANEL_FEEDBACK_RETENTION_DAYS` | Retensi masukan sebelum selesai, default 365 hari (rentang 30–1825) |
 
 Setiap source secret harus unik dan dibuat secara acak. Variabel integrasi/moderasi dapat ditambahkan saat sender atau backend terkait sudah siap. Jangan membuat nilai rahasia yang sama untuk semua layanan.
 
@@ -101,7 +101,7 @@ Request memakai header `x-choco-source`, `x-choco-timestamp`, dan `x-choco-signa
 
 Gunakan [checklist penerimaan](docs/testing/acceptance-checklist.md). Verifikasi login, sesi, rate limit, storage, event duplikat, payload invalid, pembaruan status, audit log, dan status integrasi. Jangan gunakan panel untuk moderasi produksi sebelum layanan sumber benar-benar mengonfirmasi tindakan.
 
-## Privasi dan batas pengumpulan
+## Retensi data\n\nPembersihan terjadwal berjalan setiap hari pada deployment produksi. Event operasional dihapus setelah masa retensinya (default 90 hari). Laporan dan masukan yang sudah berstatus selesai/ditutup dihapus setelah masa retensi setelah penutupan (default 365 hari). Catatan audit dan tindakan moderasi dipertahankan untuk akuntabilitas; hindari memasukkan data pribadi yang tidak perlu ke alasan tindakan. Masa retensi dapat disesuaikan melalui environment variables yang tercantum di atas.\n\n## Privasi dan batas pengumpulan
 
 - Jangan simpan kata sandi, token sesi, API key, atau kredensial pengguna.
 - Jangan mengumpulkan seluruh percakapan secara diam-diam sebagai default.
