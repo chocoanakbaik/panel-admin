@@ -45,6 +45,7 @@ Dokumentasi rancangan:
 - [Arsitektur sistem](docs/architecture/system-overview.md)
 - [Kontrak event dan API](docs/integrations/event-contract.md)
 - [Panduan integrasi sender](docs/integrations/senders.md)
+- [Kontrak moderasi akun](docs/integrations/moderation-contract.md)
 - [Model data](docs/data/data-model.md)
 - [Model keamanan dan privasi](docs/security/security-model.md)
 - [Strategi rilis](docs/deployment/release-strategy.md)
