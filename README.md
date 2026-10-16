@@ -83,7 +83,7 @@ Buat variabel berikut melalui pengaturan situs Netlify. Nilai rahasia tidak bole
 | `INTEGRATION_SARA_AI_SECRET` | HMAC secret khusus pengirim Sara AI |
 | `INTEGRATION_HELP_CENTER_SECRET` | HMAC secret khusus pengirim Help Center |
 | `MODERATION_CHOCO_AI_URL` | Endpoint moderasi backend Choco AI, setelah tersedia |
-| `MODERATION_CHOCO_AI_SECRET` | Secret HMAC untuk komunikasi panel ke backend Choco AI, setelah tersedia |
+| `MODERATION_CHOCO_AI_SECRET` | Secret HMAC untuk komunikasi panel ke backend Choco AI, setelah tersedia |\n| `MODERATION_CHOCO_AI_ENABLED` | Set ke `true` hanya setelah kontrak moderasi diuji end-to-end; selain itu kontrol tetap nonaktif |
 
 Setiap source secret harus unik dan dibuat secara acak. Variabel integrasi/moderasi dapat ditambahkan saat sender atau backend terkait sudah siap. Jangan membuat nilai rahasia yang sama untuk semua layanan.
 
