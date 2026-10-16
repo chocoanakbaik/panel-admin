@@ -149,7 +149,12 @@ begin
     raise exception 'invalid report status';
   end if;
   update public.reports
-    set status = p_status, updated_at = now()
+    set status = p_status,
+        updated_at = now(),
+        retention_until = case
+          when p_status in ('resolved', 'dismissed') then now() + interval '365 days'
+          else retention_until
+        end
     where id = p_id
     returning * into changed;
   if not found then return null; end if;
