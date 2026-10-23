@@ -2,6 +2,8 @@
 
 **Panel Admin adalah dashboard privat khusus untuk pemilik (owner) Choco** untuk mengelola keamanan platform, meninjau laporan, memantau penggunaan layanan, serta mengambil tindakan terhadap akun yang terbukti melanggar aturan.
 
+**Brand induk:** The Choco Studios (TCS), yang saat ini dikelola secara mandiri oleh Hasby Prasetya Saprudin sebagai solo developer. TCS merupakan identitas branding, bukan klaim bahwa proyek telah berbadan hukum sebagai perusahaan.
+
 Repositori ini merupakan pusat administrasi untuk ekosistem Choco. Choco AI dan Sara (Choco AI Help Center) tetap berjalan pada repositori dan layanan masing-masing; keduanya akan terhubung ke panel ini melalui API yang terautentikasi.
 
 ## Tujuan Utama
